@@ -1,9 +1,7 @@
-package org.example
+package org.example.db
 
 import kotlinx.serialization.Serializable
 import java.time.Instant
-import java.util.stream.LongStream
-
 
 
 @Serializable
@@ -25,4 +23,6 @@ data class InstallData(
     val isFromPlayStore: Boolean,
     val timestamp: Long = Instant.now().toEpochMilli(),
     val unityAdsData: String? = null,
+    val id: Int? = null,
+    val utmData: String? = null,
 )
