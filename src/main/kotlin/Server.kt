@@ -12,6 +12,7 @@ import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import kotlinx.serialization.json.Json
 import org.example.route.DataRoute
+import org.example.route.EventRoute
 import org.slf4j.event.Level
 
 class Server(
@@ -38,6 +39,12 @@ class Server(
                     getInstallsByAppName()
                     getAllApps()
                     deleteByInstallID()
+                }
+
+                EventRoute(logger).apply {
+                    sendEvent()
+                    getAllEvents()
+                    deleteByEventID()
                 }
 
             }

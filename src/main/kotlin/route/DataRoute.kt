@@ -6,10 +6,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import org.example.db.InstallData
-import org.example.cache.Cache
+import org.example.model.InstallData
 import org.example.db.DatabasePostgreSQL
 
 class DataRoute(

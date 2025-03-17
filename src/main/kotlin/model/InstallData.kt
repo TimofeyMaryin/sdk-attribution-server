@@ -1,4 +1,4 @@
-package org.example.db
+package org.example.model
 
 import kotlinx.serialization.Serializable
 import java.time.Instant
