@@ -6,6 +6,7 @@ import org.example.model.InstallData
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import javax.xml.crypto.Data
 
 object DatabasePostgreSQL {
 
@@ -31,7 +32,7 @@ object DatabasePostgreSQL {
         val appVersion = varchar("appVersion", 100)
         val deviceModel = varchar("deviceModel", 100)
         val deviceManufacturer = varchar("deviceManufacturer", 100)
-        val androidVersion = varchar("androidVersion", 100)
+        val androidVersion = integer("androidVersion")
         val apiLevel = integer("apiLevel")
         val language = varchar("language", 100)
         val country = varchar("country", 100)
@@ -96,6 +97,80 @@ object DatabasePostgreSQL {
                 timestamp = it[Install.timestamp],
                 unityAdsData = it[Install.unityAdsData],
                 id = it[Install.id],
+            )
+        }
+    }
+
+    fun getAllInstalls(
+        appName: String? = null,
+        bundleID: String? = null,
+        fromData: Long? = null,
+        toData: Long? = null,
+        fromApiLevel: Int? = null,
+        toApiLevel: Int? = null,
+        fromAndroidApiLevel: Int? = null,
+        toAndroidApiLevel: Int? = null,
+        country: String? = null,
+    ) = transaction(Database.connect(db)) {
+        val query = Install.selectAll()
+
+        if (appName != null) {
+            query.andWhere { Install.appName eq appName }
+        }
+
+        if (bundleID != null) {
+            query.andWhere { Install.bundleId eq bundleID }
+        }
+
+        if (fromData != null) {
+            query.andWhere { Install.timestamp greaterEq fromData }
+        }
+
+        if (toData != null) {
+            query.andWhere { Install.timestamp lessEq toData }
+        }
+
+        if (fromApiLevel != null) {
+            query.andWhere { Install.apiLevel greaterEq fromApiLevel }
+        }
+
+        if (toApiLevel != null) {
+            query.andWhere { Install.apiLevel lessEq toApiLevel }
+        }
+
+        if (fromAndroidApiLevel != null) {
+            query.andWhere { Install.androidVersion greaterEq fromAndroidApiLevel }
+        }
+
+        if (toAndroidApiLevel != null) {
+            query.andWhere { Install.androidVersion lessEq toAndroidApiLevel }
+        }
+
+        if (country != null) {
+            query.andWhere { Install.country eq country }
+        }
+
+        query.map {
+            InstallData(
+                bundleId = it[Install.bundleId],
+                appName = it[Install.appName],
+                appVersion = it[Install.appVersion],
+                deviceId = it[Install.deviceId],
+                deviceModel = it[Install.deviceModel],
+                deviceManufacturer = it[Install.deviceManufacturer],
+                androidVersion = it[Install.androidVersion],
+                apiLevel = it[Install.apiLevel],
+                language = it[Install.language],
+                country = it[Install.country],
+                installReferrer = it[Install.installReferrer],
+                isFirstInstall = it[Install.isFirstInstall],
+                googleAdId = it[Install.googleAdId],
+                networkType = it[Install.networkType],
+                isFromPlayStore = it[Install.isFromPlayStore],
+                timestamp = it[Install.timestamp],
+                unityAdsData = it[Install.unityAdsData],
+                id = it[Install.id],
+                utmData = it[Install.utmData]
             )
         }
     }

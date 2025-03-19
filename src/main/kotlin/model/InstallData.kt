@@ -12,7 +12,7 @@ data class InstallData(
     val deviceId: String,
     val deviceModel: String,
     val deviceManufacturer: String,
-    val androidVersion: String,
+    val androidVersion: Int,
     val apiLevel: Int,
     val language: String,
     val country: String,

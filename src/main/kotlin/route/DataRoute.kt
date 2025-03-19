@@ -8,6 +8,8 @@ import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import org.example.model.InstallData
 import org.example.db.DatabasePostgreSQL
+import org.example.utils.FILTER
+import javax.xml.crypto.Data
 
 class DataRoute(
     private val logger: Logger
@@ -16,7 +18,6 @@ class DataRoute(
     fun Route.postData() {
         post("/install") {
             val installData = call.receive<InstallData>()
-            // Database.saveInstall(installData)
             if (!DatabasePostgreSQL.getAllInstalls().contains(installData)) {
                 DatabasePostgreSQL.saveInstall(installData)
                 logger.info("Получены данные установки: $installData")
@@ -27,46 +28,36 @@ class DataRoute(
         }
     }
 
-    fun Route.getInstallsByBundleId() {
-        get("/apps/bundle/{bundleId}") {
-            val bundleId = call.parameters["bundleId"]
-
-            if (bundleId == null) {
-                call.respond(HttpStatusCode.BadRequest, "Missing bundleId")
-                return@get
-            }
-
-            val installs = DatabasePostgreSQL.getInstallsByBundleID(bundleId)
-            if (installs.isEmpty()) {
-                call.respond(HttpStatusCode.NotFound, "No installs for $bundleId")
-            } else {
-                call.respond(installs)
-            }
-        }
-    }
-
-    fun Route.getInstallsByAppName() {
-        get("/apps/name/{appName}") {
-            val appName = call.parameters["appName"]
-
-            if (appName == null) {
-                call.respond(HttpStatusCode.BadRequest, "Missing appName")
-                return@get
-            }
-
-            val installs = DatabasePostgreSQL.getInstallsByAppName(appName)
-            if (installs.isEmpty()) {
-                call.respond(HttpStatusCode.NotFound, "No Installs for $appName")
-            } else {
-                call.respond(installs)
-            }
-        }
-    }
 
     fun Route.getAllApps() {
         get("/apps") {
-            // call.respond(Database.getAllApps())
-            call.respond(DatabasePostgreSQL.getAllInstalls())
+            val params = call.request.queryParameters
+
+            val filterName = params[FILTER.NAME.query]
+            val bundleID = params[FILTER.BUNDLE_ID.query]
+
+            val fromData = params[FILTER.FROM_DATA.query]
+            val toData = params[FILTER.TO_DATA.query]
+
+            val fromApiLevel = params[FILTER.FROM_API_LEVEL.query]
+            val toApiLevel = params[FILTER.TO_API_LEVEL.query]
+
+            val fromAndroidApiLevel = params[FILTER.FROM_ANDROID_API_LEVEL.query]
+            val toAndroidApiLevel = params[FILTER.TO_ANDROID_API_LEVEL.query]
+
+            call.respond(
+                HttpStatusCode.OK,
+                DatabasePostgreSQL.getAllInstalls(
+                    appName = filterName,
+                    bundleID = bundleID,
+                    fromData = fromData?.toLong(),
+                    toData = toData?.toLong(),
+                    fromApiLevel = fromApiLevel?.toIntOrNull(),
+                    toApiLevel = toApiLevel?.toIntOrNull(),
+                    fromAndroidApiLevel = fromAndroidApiLevel?.toIntOrNull(),
+                    toAndroidApiLevel = toAndroidApiLevel?.toIntOrNull()
+                )
+            )
         }
     }
 

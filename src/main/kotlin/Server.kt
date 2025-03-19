@@ -35,8 +35,6 @@ class Server(
 
                 DataRoute(logger).apply {
                     postData()
-                    getInstallsByBundleId()
-                    getInstallsByAppName()
                     getAllApps()
                     deleteByInstallID()
                 }
