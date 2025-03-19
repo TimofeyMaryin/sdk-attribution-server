@@ -171,7 +171,10 @@ object DatabasePostgreSQL {
             )
 
             val events = transaction(Database.connect(db_event)) {
-                DatabaseEventPostgreSQL.Event.select { DatabaseEventPostgreSQL.Event.deviceId eq installData.deviceId }
+                DatabaseEventPostgreSQL.Event.select {
+                    (DatabaseEventPostgreSQL.Event.deviceId eq installData.deviceId) and
+                            (DatabaseEventPostgreSQL.Event.bundleId eq installData.bundleId)
+                }
                     .map { it[DatabaseEventPostgreSQL.Event.event] }
             }.toString()
 
