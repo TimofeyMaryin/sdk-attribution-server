@@ -1,6 +1,6 @@
 package org.example.callback
 
-interface InstallDataCallback {
+interface ActionDataCallback {
     fun onSuccess(msg: String)
     fun onError(e: String)
 }

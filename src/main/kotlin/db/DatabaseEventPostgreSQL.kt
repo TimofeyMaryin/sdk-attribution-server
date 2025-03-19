@@ -2,6 +2,7 @@ package org.example.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import org.example.callback.ActionDataCallback
 import org.example.db.DatabasePostgreSQL.Install
 import org.example.model.EventData
 import org.jetbrains.exposed.sql.*
@@ -75,6 +76,44 @@ object DatabaseEventPostgreSQL {
             println("Event with ID $deviceID deleted")
         }
 
+    }
+
+
+    fun deleteEvent(
+        deviceID: String? = null,
+        eventId: Int? = null,
+        isRemoveAll: Boolean? = null,
+        callback: ActionDataCallback,
+    ) = transaction(Database.connect(db_event)) {
+
+        if (deviceID != null) {
+            val rowDetected = Event.deleteWhere { Event.deviceId eq deviceID }
+            if (rowDetected == 0 ) {
+                callback.onError("Event with deviceID: $deviceID does not found")
+                return@transaction
+            }
+            callback.onSuccess("All Events with deviceId: $deviceID has been remove")
+            return@transaction
+        }
+
+        if (eventId != null) {
+            val rowDetected = Event.deleteWhere { Event.id eq eventId }
+            if (rowDetected == 0) {
+                callback.onError("Event with id: $eventId does not found")
+                return@transaction
+            }
+            callback.onSuccess("Event with id: $eventId has been remove")
+            return@transaction
+        }
+
+
+        if (isRemoveAll == true) {
+            Event.deleteAll()
+            callback.onSuccess("All Events has been remove")
+            return@transaction
+        }
+
+        callback.onError("Invalid EventID or DeviceID")
     }
 
 

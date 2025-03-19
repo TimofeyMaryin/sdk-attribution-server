@@ -54,6 +54,7 @@ class Server(
                     sendEvent()
                     getAllEvents()
                     deleteByEventID()
+                    deleteEvent()
                 }
 
             }

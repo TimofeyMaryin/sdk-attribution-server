@@ -2,7 +2,7 @@ package org.example.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import org.example.callback.InstallDataCallback
+import org.example.callback.ActionDataCallback
 import org.example.db.DatabaseEventPostgreSQL.db_event
 import org.example.model.InstallData
 import org.jetbrains.exposed.sql.*
@@ -57,7 +57,7 @@ object DatabasePostgreSQL {
 
     fun saveInstall(
         data: InstallData,
-        callback: InstallDataCallback
+        callback: ActionDataCallback
     ) = transaction(Database.connect(db)) {
         val existingInstall = Install.select {
             (Install.bundleId eq data.bundleId) and
@@ -184,7 +184,7 @@ object DatabasePostgreSQL {
 
 
 
-    fun testDeleteInstallById(deviceID: String?) = transaction(Database.connect(db)) {
+    fun deleteInstallById(deviceID: String?) = transaction(Database.connect(db)) {
         if (deviceID == null) {
             Install.deleteAll()
             DatabaseEventPostgreSQL.deleteEventByDeviceID(null)

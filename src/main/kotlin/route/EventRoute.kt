@@ -6,8 +6,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
+import org.example.callback.ActionDataCallback
 import org.example.db.DatabaseEventPostgreSQL
 import org.example.model.EventData
+import org.example.utils.ActionDataState
+import javax.swing.Action
 
 class EventRoute(
     private val logger: Logger,
@@ -43,6 +46,47 @@ class EventRoute(
                 call.respond(HttpStatusCode.BadRequest, "Invalid EventID")
                 return@delete
             }
+
+        }
+    }
+
+    fun Route.deleteEvent() {
+        delete("/events/delete") {
+            val params = call.request.queryParameters
+            val deviceId = params["deviceID"]
+            val id = params["id"]
+            val isRemoveAllEvents = params["all"]
+
+            var state = Pair(ActionDataState.NONE, "")
+
+
+            DatabaseEventPostgreSQL.deleteEvent(
+                deviceID = deviceId,
+                eventId = id?.toIntOrNull(),
+                isRemoveAll = isRemoveAllEvents?.toBooleanStrictOrNull(),
+                callback = object : ActionDataCallback {
+                    override fun onSuccess(msg: String) {
+                        state = Pair(ActionDataState.SUCCESS, msg)
+                    }
+
+                    override fun onError(e: String) {
+                        state = Pair(ActionDataState.ERROR, e)
+                    }
+
+                }
+            )
+
+            if (state.first == ActionDataState.SUCCESS) {
+                call.respond(HttpStatusCode.OK, state.second)
+                return@delete
+            }
+
+            if (state.first == ActionDataState.ERROR) {
+                call.respond(HttpStatusCode.Forbidden, state.second)
+                return@delete
+            }
+
+            call.respond(HttpStatusCode.BadRequest, "Invalid EventID or DeviceID")
 
         }
     }

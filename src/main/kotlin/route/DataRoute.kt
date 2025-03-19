@@ -6,11 +6,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
-import org.example.callback.InstallDataCallback
+import org.example.callback.ActionDataCallback
 import org.example.model.InstallData
 import org.example.db.DatabasePostgreSQL
 import org.example.utils.FILTER
-import org.example.utils.InstallDataState
+import org.example.utils.ActionDataState
 
 class DataRoute(
     private val logger: Logger
@@ -19,18 +19,18 @@ class DataRoute(
     fun Route.postData() {
         post("/install") {
             val installData = call.receive<InstallData>()
-            var status = Pair(InstallDataState.NONE, "")
+            var status = Pair(ActionDataState.NONE, "")
 
             logger.info("Install received: $installData")
 
 
             DatabasePostgreSQL.saveInstall(
                 installData,
-                callback = object : InstallDataCallback {
+                callback = object : ActionDataCallback {
                     override fun onSuccess(msg: String) {
                         logger.info("DatabasePostgreSQL.saveInstall SUCCESS: $msg")
                          status = status.copy(
-                             first = InstallDataState.SUCCESS,
+                             first = ActionDataState.SUCCESS,
                              second = msg
                          )
                     }
@@ -38,7 +38,7 @@ class DataRoute(
                     override fun onError(e: String) {
                         logger.error("DatabasePostgreSQL.saveInstall ERROR: $e")
                         status = status.copy(
-                            first = InstallDataState.ERROR,
+                            first = ActionDataState.ERROR,
                             second = e
                         )
                     }
@@ -46,10 +46,10 @@ class DataRoute(
                 }
             )
 
-            if (status.first == InstallDataState.SUCCESS) {
+            if (status.first == ActionDataState.SUCCESS) {
                 call.respond(HttpStatusCode.OK, status.second)
             }
-            if (status.first == InstallDataState.ERROR) {
+            if (status.first == ActionDataState.ERROR) {
                 call.respond(HttpStatusCode.Forbidden, status.second)
             }
         }
@@ -97,7 +97,7 @@ class DataRoute(
             val deviceId = params["id"]
 
             try {
-                call.respond(HttpStatusCode.OK, DatabasePostgreSQL.testDeleteInstallById(deviceId))
+                call.respond(HttpStatusCode.OK, DatabasePostgreSQL.deleteInstallById(deviceId))
             } catch (r: IllegalArgumentException) {
                 call.respond(HttpStatusCode.NotFound, "Install object with ID $deviceId not found.")
             } catch (e: Exception) {
