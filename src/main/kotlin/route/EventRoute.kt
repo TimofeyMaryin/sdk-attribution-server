@@ -38,18 +38,6 @@ class EventRoute(
         }
     }
 
-    fun Route.deleteByEventID() {
-        delete("/events/delete/{eventID}") {
-            val eventID = call.parameters["eventID"]?.toIntOrNull()
-
-            if (eventID == null) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid EventID")
-                return@delete
-            }
-
-        }
-    }
-
     fun Route.deleteEvent() {
         delete("/events/delete") {
             val params = call.request.queryParameters

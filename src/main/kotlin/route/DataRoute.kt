@@ -91,22 +91,38 @@ class DataRoute(
         }
     }
 
-    fun Route.deleteByInstallID() {
+    fun Route.deleteInstall() {
         delete("/apps/delete") {
             val params = call.request.queryParameters
-            val deviceId = params["id"]
 
-            try {
-                call.respond(HttpStatusCode.OK, DatabasePostgreSQL.deleteInstallById(deviceId))
-            } catch (r: IllegalArgumentException) {
-                call.respond(HttpStatusCode.NotFound, "Install object with ID $deviceId not found.")
-            } catch (e: Exception) {
-                call.respond(
-                    HttpStatusCode.InternalServerError,
-                    "An error occurred while deleting install object. Error: ${e.message}"
-                )
+            val deviceId = params["deviceId"]
+            val applicationName = params["appName"]
+
+            var state = Pair(ActionDataState.NONE, "")
+
+            DatabasePostgreSQL.deleteInstall(
+                deviceId,
+                applicationName,
+                callback = object : ActionDataCallback {
+                    override fun onSuccess(msg: String) {
+                        state = Pair(ActionDataState.SUCCESS, msg)
+                    }
+
+                    override fun onError(e: String) {
+                        state = Pair(ActionDataState.ERROR, e)
+                    }
+                }
+            )
+
+            if (state.first == ActionDataState.SUCCESS) {
+                call.respond(HttpStatusCode.OK, "SUCCESS: ${state.second}")
+                return@delete
             }
 
+            if (state.first == ActionDataState.ERROR) {
+                call.respond(HttpStatusCode.Forbidden, "ERROR: ${state.second}")
+                return@delete
+            }
 
         }
     }

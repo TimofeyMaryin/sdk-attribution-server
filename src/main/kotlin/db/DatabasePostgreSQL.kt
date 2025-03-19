@@ -184,20 +184,42 @@ object DatabasePostgreSQL {
 
 
 
-    fun deleteInstallById(deviceID: String?) = transaction(Database.connect(db)) {
-        if (deviceID == null) {
-            Install.deleteAll()
-            DatabaseEventPostgreSQL.deleteEventByDeviceID(null)
+    fun deleteInstall(
+        deviceID: String?,
+        appName: String? = null,
+        callback: ActionDataCallback,
+    ) = transaction(Database.connect(db)) {
+
+        if (deviceID == null || appName == null) {
+            callback.onError("Invalidate deleteInstallById: deviceID or appName is null")
             return@transaction
         }
 
-        val rowsDetect = Install.deleteWhere { Install.deviceId eq deviceID }
-        DatabaseEventPostgreSQL.deleteEventByDeviceID(deviceID)
+
+        val rowsDetect = Install.deleteWhere { (deviceId eq deviceID) and (Install.appName eq appName) }
+
         if (rowsDetect == 0) {
-            println("No install with ID $deviceID")
+            callback.onError("No install with ID '$deviceID' or appName: '$appName'")
         } else {
-            println("Install with ID $deviceID deleted")
+
+            DatabaseEventPostgreSQL.deleteEvent(
+                deviceID = deviceID,
+                eventId = null,
+                callback = object : ActionDataCallback {
+                    override fun onSuccess(msg: String) {
+                        println("SUCCESS: Event with deviceID '$deviceID' was remove!")
+                    }
+
+                    override fun onError(e: String) {
+                        println("FAILED: Event with deviceID '$deviceID' was not remove!")
+                    }
+                }
+            )
+            callback.onSuccess("Install on deviceID '$deviceID' and appName '$appName' was success deleted")
         }
+
+
+
     }
 
 

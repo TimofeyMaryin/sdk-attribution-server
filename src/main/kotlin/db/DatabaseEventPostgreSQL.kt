@@ -3,7 +3,6 @@ package org.example.db
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.example.callback.ActionDataCallback
-import org.example.db.DatabasePostgreSQL.Install
 import org.example.model.EventData
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -62,21 +61,6 @@ object DatabaseEventPostgreSQL {
            )
        }
    }
-
-    fun deleteEventByDeviceID(deviceID: String?) = transaction(Database.connect(db_event)) {
-        if (deviceID == null) {
-            Event.deleteAll()
-            return@transaction
-        }
-
-        val rowsDetect = Event.deleteWhere { Event.deviceId eq deviceID }
-        if (rowsDetect == 0) {
-            println("No Event with ID $deviceID")
-        } else {
-            println("Event with ID $deviceID deleted")
-        }
-
-    }
 
 
     fun deleteEvent(

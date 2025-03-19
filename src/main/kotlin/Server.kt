@@ -47,13 +47,12 @@ class Server(
                     postData()
                     getAllApps()
 
-                    deleteByInstallID()
+                    deleteInstall()
                 }
 
                 EventRoute(logger).apply {
                     sendEvent()
                     getAllEvents()
-                    deleteByEventID()
                     deleteEvent()
                 }
 
