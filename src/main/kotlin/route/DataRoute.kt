@@ -6,10 +6,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
+import org.example.callback.InstallDataCallback
 import org.example.model.InstallData
 import org.example.db.DatabasePostgreSQL
 import org.example.utils.FILTER
-import javax.xml.crypto.Data
+import org.example.utils.InstallDataState
 
 class DataRoute(
     private val logger: Logger
@@ -18,12 +19,38 @@ class DataRoute(
     fun Route.postData() {
         post("/install") {
             val installData = call.receive<InstallData>()
-            if (!DatabasePostgreSQL.getAllInstalls().contains(installData)) {
-                DatabasePostgreSQL.saveInstall(installData)
-                logger.info("Получены данные установки: $installData")
-                call.respond(HttpStatusCode.OK, "Installation data received")
-            } else {
-                logger.info("Данные об установке: $installData уже существуют")
+            var status = Pair(InstallDataState.NONE, "")
+
+            logger.info("Install received: $installData")
+
+
+            DatabasePostgreSQL.saveInstall(
+                installData,
+                callback = object : InstallDataCallback {
+                    override fun onSuccess(msg: String) {
+                        logger.info("DatabasePostgreSQL.saveInstall SUCCESS: $msg")
+                         status = status.copy(
+                             first = InstallDataState.SUCCESS,
+                             second = msg
+                         )
+                    }
+
+                    override fun onError(e: String) {
+                        logger.error("DatabasePostgreSQL.saveInstall ERROR: $e")
+                        status = status.copy(
+                            first = InstallDataState.ERROR,
+                            second = e
+                        )
+                    }
+
+                }
+            )
+
+            if (status.first == InstallDataState.SUCCESS) {
+                call.respond(HttpStatusCode.OK, status.second)
+            }
+            if (status.first == InstallDataState.ERROR) {
+                call.respond(HttpStatusCode.Forbidden, status.second)
             }
         }
     }
@@ -58,27 +85,21 @@ class DataRoute(
                     toApiLevel = toApiLevel?.toIntOrNull(),
                     fromAndroidApiLevel = fromAndroidApiLevel?.toIntOrNull(),
                     toAndroidApiLevel = toAndroidApiLevel?.toIntOrNull(),
-                    country = country
+                    country = country,
                 )
             )
         }
     }
 
     fun Route.deleteByInstallID() {
-        delete("/apps/delete/{installID}") {
-            val appInstallID = call.parameters["installID"]?.toIntOrNull()
-
-            if (appInstallID == null) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid InstallID")
-                return@delete
-            }
-
+        delete("/apps/delete") {
+            val params = call.request.queryParameters
+            val deviceId = params["id"]
 
             try {
-                DatabasePostgreSQL.deleteInstallByID(appInstallID)
-                call.respond(HttpStatusCode.OK, "Install object with ID $appInstallID has been successfully deleted.")
+                call.respond(HttpStatusCode.OK, DatabasePostgreSQL.testDeleteInstallById(deviceId))
             } catch (r: IllegalArgumentException) {
-                call.respond(HttpStatusCode.NotFound, "Install object with ID $appInstallID not found.")
+                call.respond(HttpStatusCode.NotFound, "Install object with ID $deviceId not found.")
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -86,8 +107,10 @@ class DataRoute(
                 )
             }
 
+
         }
     }
+
 
 }
 

@@ -2,18 +2,18 @@ package org.example.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import org.example.callback.InstallDataCallback
+import org.example.db.DatabaseEventPostgreSQL.db_event
 import org.example.model.InstallData
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.postgresql.shaded.com.ongres.scram.common.bouncycastle.pbkdf2.Integers
-import javax.xml.crypto.Data
 
 object DatabasePostgreSQL {
 
     private val db by lazy {
         val config = HikariConfig().apply {
-            jdbcUrl = "jdbc:postgresql://localhost:5432/sdl_server"
+            jdbcUrl = "jdbc:postgresql://localhost:5432/sdk_server"
             driverClassName = "org.postgresql.Driver"
             username = "user"
             password = "pass"
@@ -45,6 +45,7 @@ object DatabasePostgreSQL {
         val timestamp = long("timestamp")
         val utmData = varchar("utmData", 255).nullable()
         val unityAdsData = varchar("unityAdsData", 1000).nullable()
+        val events = text("event").nullable()
         override val primaryKey = PrimaryKey(id)
     }
 
@@ -54,7 +55,25 @@ object DatabasePostgreSQL {
         }
     }
 
-    fun saveInstall(data: InstallData) = transaction(Database.connect(db)) {
+    fun saveInstall(
+        data: InstallData,
+        callback: InstallDataCallback
+    ) = transaction(Database.connect(db)) {
+        val existingInstall = Install.select {
+            (Install.bundleId eq data.bundleId) and
+                    (Install.appName eq data.appName) and
+                    (Install.deviceId eq data.deviceId) and
+                    (Install.androidVersion eq data.androidVersion) and
+                    (Install.deviceManufacturer eq data.deviceManufacturer)
+        }.singleOrNull()
+
+        println("SAVE_INSTALL:  existingInstall: $existingInstall")
+        println("SAVE_INSTALL: $data")
+
+        if (existingInstall != null) {
+            callback.onError("Data already exist: $data")
+            return@transaction
+        }
         Install.insert {
             it[bundleId] = data.bundleId
             it[deviceId] = data.deviceId
@@ -75,31 +94,7 @@ object DatabasePostgreSQL {
             it[unityAdsData] = data.unityAdsData
             it[utmData] = data.utmData
         }
-    }
-
-    fun getInstallsByAppName(appName: String) = transaction(Database.connect(db)) {
-        Install.select { Install.appName eq appName }.map {
-            InstallData(
-                bundleId = it[Install.bundleId],
-                appName = it[Install.appName],
-                appVersion = it[Install.appVersion],
-                deviceId = it[Install.deviceId],
-                deviceModel = it[Install.deviceModel],
-                deviceManufacturer = it[Install.deviceManufacturer],
-                androidVersion = it[Install.androidVersion],
-                apiLevel = it[Install.apiLevel],
-                language = it[Install.language],
-                country = it[Install.country],
-                installReferrer = it[Install.installReferrer],
-                isFirstInstall = it[Install.isFirstInstall],
-                googleAdId = it[Install.googleAdId],
-                networkType = it[Install.networkType],
-                isFromPlayStore = it[Install.isFromPlayStore],
-                timestamp = it[Install.timestamp],
-                unityAdsData = it[Install.unityAdsData],
-                id = it[Install.id],
-            )
-        }
+        callback.onSuccess("Data successfull save: $data")
     }
 
     fun getAllInstalls(
@@ -152,7 +147,7 @@ object DatabasePostgreSQL {
         }
 
         query.map {
-            InstallData(
+            val installData = InstallData(
                 bundleId = it[Install.bundleId],
                 appName = it[Install.appName],
                 appVersion = it[Install.appVersion],
@@ -171,43 +166,36 @@ object DatabasePostgreSQL {
                 timestamp = it[Install.timestamp],
                 unityAdsData = it[Install.unityAdsData],
                 id = it[Install.id],
-                utmData = it[Install.utmData]
+                utmData = it[Install.utmData],
+                event = null,
             )
+
+            val events = transaction(Database.connect(db_event)) {
+                DatabaseEventPostgreSQL.Event.select { DatabaseEventPostgreSQL.Event.deviceId eq installData.deviceId }
+                    .map { it[DatabaseEventPostgreSQL.Event.event] }
+            }.toString()
+
+            installData.copy(event = events)
         }
     }
 
-    fun getAllInstalls() = transaction(Database.connect(db)) {
-        Install.selectAll().map {
-            InstallData(
-                bundleId = it[Install.bundleId],
-                appName = it[Install.appName],
-                appVersion = it[Install.appVersion],
-                deviceId = it[Install.deviceId],
-                deviceModel = it[Install.deviceModel],
-                deviceManufacturer = it[Install.deviceManufacturer],
-                androidVersion = it[Install.androidVersion],
-                apiLevel = it[Install.apiLevel],
-                language = it[Install.language],
-                country = it[Install.country],
-                installReferrer = it[Install.installReferrer],
-                isFirstInstall = it[Install.isFirstInstall],
-                googleAdId = it[Install.googleAdId],
-                networkType = it[Install.networkType],
-                isFromPlayStore = it[Install.isFromPlayStore],
-                timestamp = it[Install.timestamp],
-                unityAdsData = it[Install.unityAdsData],
-                id = it[Install.id],
-                utmData = it[Install.utmData]
-            )
-        }
-    }
 
-    fun deleteInstallByID(installID: Int) = transaction(Database.connect(db)) {
-        val rowsDetect = Install.deleteWhere { Install.id eq installID }
+
+    fun testDeleteInstallById(deviceID: String?) = transaction(Database.connect(db)) {
+        if (deviceID == null) {
+            Install.deleteAll()
+            DatabaseEventPostgreSQL.deleteEventByDeviceID(null)
+            return@transaction
+        }
+
+        val rowsDetect = Install.deleteWhere { Install.deviceId eq deviceID }
+        DatabaseEventPostgreSQL.deleteEventByDeviceID(deviceID)
         if (rowsDetect == 0) {
-            println("No install with ID $installID")
+            println("No install with ID $deviceID")
         } else {
-            println("Install with ID $installID deleted")
+            println("Install with ID $deviceID deleted")
         }
     }
+
+
 }

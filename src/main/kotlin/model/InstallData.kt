@@ -25,4 +25,5 @@ data class InstallData(
     val unityAdsData: String? = null,
     val id: Int? = null,
     val utmData: String? = null,
+    val event: String? = null,
 )

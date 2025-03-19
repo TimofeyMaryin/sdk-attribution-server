@@ -2,13 +2,15 @@ package org.example.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import org.example.db.DatabasePostgreSQL.Install
 import org.example.model.EventData
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseEventPostgreSQL {
 
-    private val db by lazy {
+    val db_event by lazy {
         val config = HikariConfig().apply {
             jdbcUrl = "jdbc:postgresql://localhost:5432/sdk_server_event"
             driverClassName = "org.postgresql.Driver"
@@ -33,12 +35,12 @@ object DatabaseEventPostgreSQL {
 
 
     fun init() {
-        transaction(Database.connect(db)) {
+        transaction(Database.connect(db_event)) {
             SchemaUtils.create(Event)
         }
     }
 
-    fun saveEvent(event: EventData) = transaction(Database.connect(db)) {
+    fun saveEvent(event: EventData) = transaction(Database.connect(db_event)) {
 
         if (!getAllEvent().contains(event)) {
             Event.insert {
@@ -49,7 +51,7 @@ object DatabaseEventPostgreSQL {
         }
     }
 
-   fun getAllEvent() = transaction(Database.connect(db)) {
+   fun getAllEvent() = transaction(Database.connect(db_event)) {
        Event.selectAll().map {
            EventData(
                event = it[Event.event],
@@ -59,6 +61,21 @@ object DatabaseEventPostgreSQL {
            )
        }
    }
+
+    fun deleteEventByDeviceID(deviceID: String?) = transaction(Database.connect(db_event)) {
+        if (deviceID == null) {
+            Event.deleteAll()
+            return@transaction
+        }
+
+        val rowsDetect = Event.deleteWhere { Event.deviceId eq deviceID }
+        if (rowsDetect == 0) {
+            println("No Event with ID $deviceID")
+        } else {
+            println("Event with ID $deviceID deleted")
+        }
+
+    }
 
 
 }

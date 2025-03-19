@@ -46,6 +46,7 @@ class Server(
                 DataRoute(logger).apply {
                     postData()
                     getAllApps()
+
                     deleteByInstallID()
                 }
 
