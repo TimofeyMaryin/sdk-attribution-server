@@ -6,6 +6,7 @@ import org.example.model.InstallData
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.postgresql.shaded.com.ongres.scram.common.bouncycastle.pbkdf2.Integers
 import javax.xml.crypto.Data
 
 object DatabasePostgreSQL {
@@ -32,7 +33,7 @@ object DatabasePostgreSQL {
         val appVersion = varchar("appVersion", 100)
         val deviceModel = varchar("deviceModel", 100)
         val deviceManufacturer = varchar("deviceManufacturer", 100)
-        val androidVersion = integer("androidVersion")
+        val androidVersion = varchar("androidVersion", 100)
         val apiLevel = integer("apiLevel")
         val language = varchar("language", 100)
         val country = varchar("country", 100)
@@ -139,11 +140,11 @@ object DatabasePostgreSQL {
         }
 
         if (fromAndroidApiLevel != null) {
-            query.andWhere { Install.androidVersion greaterEq fromAndroidApiLevel }
+            query.andWhere { Install.androidVersion.castTo<Int>(IntegerColumnType()) greaterEq fromAndroidApiLevel }
         }
 
         if (toAndroidApiLevel != null) {
-            query.andWhere { Install.androidVersion lessEq toAndroidApiLevel }
+            query.andWhere { Install.androidVersion.castTo<Int>(IntegerColumnType()) lessEq toAndroidApiLevel }
         }
 
         if (country != null) {
@@ -171,31 +172,6 @@ object DatabasePostgreSQL {
                 unityAdsData = it[Install.unityAdsData],
                 id = it[Install.id],
                 utmData = it[Install.utmData]
-            )
-        }
-    }
-
-    fun getInstallsByBundleID(bundleID: String) = transaction(Database.connect(db)) {
-        Install.select { Install.bundleId eq bundleID }.map {
-            InstallData(
-                bundleId = it[Install.bundleId],
-                appName = it[Install.appName],
-                appVersion = it[Install.appVersion],
-                deviceId = it[Install.deviceId],
-                deviceModel = it[Install.deviceModel],
-                deviceManufacturer = it[Install.deviceManufacturer],
-                androidVersion = it[Install.androidVersion],
-                apiLevel = it[Install.apiLevel],
-                language = it[Install.language],
-                country = it[Install.country],
-                installReferrer = it[Install.installReferrer],
-                isFirstInstall = it[Install.isFirstInstall],
-                googleAdId = it[Install.googleAdId],
-                networkType = it[Install.networkType],
-                isFromPlayStore = it[Install.isFromPlayStore],
-                timestamp = it[Install.timestamp],
-                unityAdsData = it[Install.unityAdsData],
-                id = it[Install.id],
             )
         }
     }

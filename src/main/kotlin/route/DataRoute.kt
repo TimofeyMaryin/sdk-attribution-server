@@ -45,6 +45,8 @@ class DataRoute(
             val fromAndroidApiLevel = params[FILTER.FROM_ANDROID_API_LEVEL.query]
             val toAndroidApiLevel = params[FILTER.TO_ANDROID_API_LEVEL.query]
 
+            val country = params[FILTER.COUNTRY.query]
+
             call.respond(
                 HttpStatusCode.OK,
                 DatabasePostgreSQL.getAllInstalls(
@@ -55,7 +57,8 @@ class DataRoute(
                     fromApiLevel = fromApiLevel?.toIntOrNull(),
                     toApiLevel = toApiLevel?.toIntOrNull(),
                     fromAndroidApiLevel = fromAndroidApiLevel?.toIntOrNull(),
-                    toAndroidApiLevel = toAndroidApiLevel?.toIntOrNull()
+                    toAndroidApiLevel = toAndroidApiLevel?.toIntOrNull(),
+                    country = country
                 )
             )
         }
