@@ -4,6 +4,20 @@ plugins {
     kotlin("plugin.serialization") version "2.0.21"
 }
 
+application {
+    mainClass.set("org.example.MainKt")
+}
+
+tasks {
+    jar {
+        manifest {
+            attributes("Main-Class" to "org.example.MainKt")
+        }
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    }
+}
+
 group = "org.example"
 version = "1.0-SNAPSHOT"
 

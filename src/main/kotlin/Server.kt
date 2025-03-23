@@ -75,7 +75,8 @@ class Server(
                 }
 
                 get("/") {
-                    call.respond(HttpStatusCode.OK, "Сервер работает!")
+                     call.respond(HttpStatusCode.OK, "Сервер работает!")
+
                 }
 
                 DataRoute(logger).apply {
@@ -93,6 +94,7 @@ class Server(
 
                 AuthRoute(logger).apply {
                     logIn()
+                    logInPost()
                     auth()
                 }
 

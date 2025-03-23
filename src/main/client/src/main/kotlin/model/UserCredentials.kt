@@ -2,11 +2,8 @@ package org.example.model
 
 import kotlinx.serialization.Serializable
 
-
 @Serializable
-data class UserModel(
-    val id: Int? = null,
+data class UserCredentials(
     val name: String,
-    val password: String,
-    val token: String?,
+    val password: String
 )
