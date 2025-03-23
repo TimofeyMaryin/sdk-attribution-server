@@ -22,6 +22,10 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:2.3.0")  // HTTP клиент Ktor
     implementation("io.ktor:ktor-client-content-negotiation:2.3.0") // Поддержка JSON
     implementation("io.ktor:ktor-server-content-negotiation:2.3.0") // Поддержка JSON
+
+    implementation("io.ktor:ktor-server-auth:2.3.0")
+    implementation("io.ktor:ktor-server-auth-jwt:2.3.0")
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0") // JSON сериализацияъ
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
