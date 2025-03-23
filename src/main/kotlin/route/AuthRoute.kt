@@ -42,7 +42,7 @@ class AuthRoute(
         post("/login") {
             val data = call.receive<AuthModel>()
 
-            if (data.name == "ADMIN" && data.password == "PASS") {
+            if (data.name == "ADMIN" && data.password == "ADMIN") {
                 val token = AuthToken(token = generateToken("admin"), message = "Вы успешно вошли в систему!")
                 call.respond(HttpStatusCode.OK, token)
                 return@post
