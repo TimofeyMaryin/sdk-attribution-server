@@ -17,6 +17,7 @@ import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import kotlinx.serialization.json.Json
 import org.example.model.UnityEventData
+import org.example.route.AdRedirectRoute
 import org.example.route.AuthRoute
 import org.example.route.DataRoute
 import org.example.route.EventRoute
@@ -96,6 +97,15 @@ class Server(
                     logIn()
                     logInPost()
                     auth()
+                }
+
+                // 192.168.1.227
+                // 192.168.1.227:8080
+                // 194.58.126.29:8080
+                AdRedirectRoute(logger, "192.168.1.227").apply {
+                    adTracking()
+                    adImpression()
+                    redirectToGooglePlay()
                 }
 
             }
