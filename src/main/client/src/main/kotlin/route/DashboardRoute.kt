@@ -12,6 +12,7 @@ import kotlinx.html.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.example.model.InstallData
+import org.example.utils.URL_TO_SERVER
 
 class DashboardRoute {
 
@@ -156,7 +157,7 @@ class DashboardRoute {
                                     installDataList.forEach { data ->
                                         div("card") {
                                             attributes["onclick"] =
-                                                "alert('Кликнуто на карточке: ${data.appName}')"
+                                                "window.location.href='/dashboard/details/${data.appName}'"
 
                                             div("card-item") { b { +"App Name: " }; +data.appName }
                                             div("card-item") { b { +"App Version: " }; +data.appVersion }
@@ -188,7 +189,7 @@ class DashboardRoute {
 
 suspend fun fetchProtectedApi(token: String): HttpResponse {
     val client = HttpClient()
-    return client.get("http://192.168.1.227:8080/apps") {
+    return client.get("${URL_TO_SERVER}apps") {
         header("Authorization", "Bearer $token")
     }
 }

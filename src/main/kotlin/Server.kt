@@ -19,8 +19,10 @@ import kotlinx.serialization.json.Json
 import org.example.model.UnityEventData
 import org.example.route.AdRedirectRoute
 import org.example.route.AuthRoute
+import org.example.route.ClickRoute
 import org.example.route.DataRoute
 import org.example.route.EventRoute
+import org.example.utils.CURRENT_URL
 import org.example.utils.JWTConfig
 import org.slf4j.event.Level
 
@@ -85,6 +87,7 @@ class Server(
                     getAllApps()
 
                     deleteInstall()
+                    deleteAllInstalls()
                 }
 
                 EventRoute(logger).apply {
@@ -98,14 +101,16 @@ class Server(
                     logInPost()
                     auth()
                 }
-
-                // 192.168.1.227
-                // 192.168.1.227:8080
-                // 194.58.126.29:8080
-                AdRedirectRoute(logger, "192.168.1.227").apply {
+                AdRedirectRoute(logger).apply {
                     adTracking()
                     adImpression()
                     redirectToGooglePlay()
+                }
+
+                ClickRoute(logger).apply {
+                    getAllClick()
+                    getClickByBundleID()
+                    deleteAllClicks()
                 }
 
             }
@@ -120,5 +125,5 @@ fun processUnityEvent(data: UnityEventData) {
         "click" -> println("Клик: ${data.deviceId}")
         else -> println("Неизвестное событие: ${data.event}")
     }
-    // Здесь можешь сохранять данные в базу, логировать или что-то ещё
+
 }

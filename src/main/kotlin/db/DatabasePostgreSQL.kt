@@ -183,7 +183,6 @@ object DatabasePostgreSQL {
     }
 
 
-
     fun deleteInstall(
         deviceID: String?,
         appName: String? = null,
@@ -220,6 +219,11 @@ object DatabasePostgreSQL {
 
 
 
+    }
+
+
+    fun deleteAllInstalls() = transaction(Database.connect(db)) {
+        Install.deleteAll()
     }
 
 

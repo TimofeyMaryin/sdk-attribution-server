@@ -138,6 +138,15 @@ class DataRoute(
         }
     }
 
+    fun Route.deleteAllInstalls() {
+        authenticate(JWTConfig.NAME) {
+            delete("apps/delete/all") {
+                DatabasePostgreSQL.deleteAllInstalls()
+                call.respond(HttpStatusCode.OK, "All installs was delete!")
+            }
+        }
+    }
+
 
 }
 

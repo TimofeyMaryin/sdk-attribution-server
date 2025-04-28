@@ -38,7 +38,7 @@ object DatabaseImpressionPostgresSQL {
         val gamer_id = varchar("gamer_id", 255).nullable()
         val game_id = varchar("game_id", 255).nullable()
         val video_orientation = varchar("video_orientation", 255).nullable()
-        override val primaryKey = PrimaryKey(Event.id)
+        override val primaryKey = PrimaryKey(id)
     }
 
     fun init() {
