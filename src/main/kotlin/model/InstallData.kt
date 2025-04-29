@@ -3,7 +3,6 @@ package org.example.model
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
-
 @Serializable
 data class InstallData(
     val bundleId: String,
