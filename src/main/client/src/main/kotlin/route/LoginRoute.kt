@@ -6,20 +6,30 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.http.content.TextContent
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.html.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.logging.Logger
 
 import kotlinx.html.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.example.model.UserCredentials
 
-class LoginRoute {
+@Serializable
+data class UserCredentials(
+    val name: String,
+    val password: String
+)
+
+class LoginRoute(
+    private val logger: Logger
+) {
 
     fun Route.logIn() {
         get("/login") {
@@ -105,7 +115,7 @@ class LoginRoute {
                                 }
                             }
                             button(type = ButtonType.submit) {
-                                +"Войти"
+                                +"Войти ;)"
                             }
                         }
                     }
@@ -124,7 +134,7 @@ class LoginRoute {
 
             if (username != null && password != null) {
                 // Выполняем запрос на вход через loginRequest
-                val token = loginRequest(username, password)
+                val token = loginRequest(username, password, logger)
 
                 if (token != null) {
                     // Сохраняем токен в Cookie
@@ -144,7 +154,11 @@ class LoginRoute {
 }
 
 
-suspend fun loginRequest(username: String, password: String): String? {
+suspend fun loginRequest(
+    username: String,
+    password: String,
+    logger: Logger,
+): String? {
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -160,6 +174,7 @@ suspend fun loginRequest(username: String, password: String): String? {
         setBody(UserCredentials(username, password))
     }
 
+    logger.error("Response body: ${response.bodyAsText()}")
     return if (response.status == HttpStatusCode.OK) {
         val responseBody = response.bodyAsText()
         Json.parseToJsonElement(responseBody).jsonObject["token"]?.jsonPrimitive?.content
@@ -167,3 +182,4 @@ suspend fun loginRequest(username: String, password: String): String? {
         null
     }
 }
+

@@ -1,195 +1,104 @@
 package org.example.route
 
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.html.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import kotlinx.html.*
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.call
+import io.ktor.server.html.respondHtml
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.util.logging.Logger
+import kotlinx.html.a
+import kotlinx.html.body
+import kotlinx.html.div
+import kotlinx.html.h1
+import kotlinx.html.h3
+import kotlinx.html.h5
+import kotlinx.html.h6
+import kotlinx.html.head
+import kotlinx.html.title
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.example.model.ClickModel
 import org.example.model.InstallData
-import org.example.utils.URL_TO_SERVER
+import org.example.utils.fetchProtectedApi
+import org.example.utils.fetchProtectedImpressionClick
+import org.example.utils.getFileRoute
+import java.io.File
+import kotlin.math.log
 
-class DashboardRoute {
+class DashboardRoute(private val logger: Logger) {
 
+    fun Route.start() {
+        get("/static/start") {
+            call.respondFile(File(getFileRoute("index.html")))
+        }
+    }
 
-    fun Route.adminRoute() {
-        get("/admin") {
+    fun Route.dashboardApplication() {
+        get("/dashboard/details/{appName}") {
             val token = call.request.cookies["jwt_token"]
+            val appName = call.parameters["appName"]
 
             if (token == null) {
+                logger.error("Token is Invalidate! Please Check your JWT token")
                 call.respondRedirect("/login?error=not_authenticated")
                 return@get
             }
 
-            try {
-                val apiResponse = fetchProtectedApi(token)
-                val apiText = apiResponse.bodyAsText()
+            val apiResponse = fetchProtectedApi(token)
+            val apiText = apiResponse.bodyAsText()
+            val appData = Json.decodeFromString<List<InstallData>>(apiText).filter { data -> data.appName == appName }
 
-                if (apiResponse.status == HttpStatusCode.OK) {
-                    val installDataList = Json.decodeFromString<List<InstallData>>(apiText)
+            val clickResponse = fetchProtectedImpressionClick(token, bundleId = appData.first().bundleId)
+            val apiClick = clickResponse.bodyAsText()
 
-                    call.respondHtml {
-                        head {
-                            title { +"Админ-панель" }
-                            style {
-                                unsafe {
-                                    +"""
-                                body {
-                                    margin: 0;
-                                    font-family: Arial, sans-serif;
-                                }
-                                .header {
-                                    position: sticky;
-                                    top: 0;
-                                    background-color: #ffffff;
-                                    z-index: 1000;
-                                    padding: 1rem;
-                                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                                    display: flex;
-                                    gap: 1rem;
-                                    align-items: center;
-                                }
-                                .header input, .header select, .header button {
-                                    padding: 0.5rem;
-                                    border: 1px solid #ddd;
-                                    border-radius: 6px;
-                                    font-size: 1rem;
-                                }
-                                .header button {
-                                    background-color: #007bff;
-                                    color: white;
-                                    border: none;
-                                    cursor: pointer;
-                                    transition: background-color 0.2s;
-                                }
-                                .header button:hover {
-                                    background-color: #0056b3;
-                                }
-                                .card-container {
-                                    display: flex;
-                                    flex-direction: column;
-                                    gap: 1rem;
-                                    padding: 1rem;
-                                }
-                                .card {
-                                    width: 100%;
-                                    background-color: #ffffff;
-                                    border-radius: 12px;
-                                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                                    padding: 1rem;
-                                    transition: transform 0.2s, box-shadow 0.2s;
-                                    cursor: pointer;
-                                    display: flex;
-                                    flex-direction: column;
-                                    gap: 0.5rem;
-                                }
-                                .card:hover {
-                                    transform: translateY(-2px);
-                                    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-                                }
-                                .card-item {
-                                    font-size: 0.95rem;
-                                    color: #333;
-                                    word-break: break-word;
-                                }
-                                .card-item b {
-                                    font-weight: bold;
-                                    color: #555;
-                                }
-                                """
-                                }
-                            }
-                            script {
-                                unsafe {
-                                    +"""
-                                function applyFilters() {
-                                    const appNameFilter = document.getElementById('appNameFilter').value;
-                                    const countryFilter = document.getElementById('countryFilter').value;
+            if (apiClick.contains("List is Empty")) {
+                call.respondText("Impression and Simple Click is Empty! This is impossible! Please check your application!", status = HttpStatusCode.NotFound)
+                return@get
+            }
 
-                                    alert('Фильтры применены: AppName = ' + appNameFilter + ', Country = ' + countryFilter);
-                                    // Здесь можно реализовать логику фильтрации с отправкой запроса на сервер
-                                }
-                                """
-                                }
-                            }
-                        }
-                        body {
-                            // Верхняя часть для фильтров
-                            div("header") {
-                                input {
-                                    id = "appNameFilter"
-                                    attributes["type"] = "text"
-                                    attributes["placeholder"] = "Фильтр по appName"
-                                }
-                                select {
-                                    id = "countryFilter"
-                                    option {
-                                        value = ""
-                                        +"Все страны"
-                                    }
-                                    option {
-                                        value = "RU"
-                                        +"Россия"
-                                    }
-                                    option {
-                                        value = "US"
-                                        +"США"
-                                    }
-                                    option {
-                                        value = "DE"
-                                        +"Германия"
-                                    }
-                                }
-                                button {
-                                    attributes["onclick"] = "applyFilters()"
-                                    +"Применить фильтры"
-                                }
-                            }
+            val appImpressionClick = Json.decodeFromString<List<ClickModel>>(apiClick)
 
-                            // Карточки данных
-                            div("card-container") {
-                                if (installDataList.isNotEmpty()) {
-                                    installDataList.forEach { data ->
-                                        div("card") {
-                                            attributes["onclick"] =
-                                                "window.location.href='/dashboard/details/${data.appName}'"
+            if (appName == null) {
+                logger.error("App Name is Null! App not found")
+                call.respondText("App not found", status = HttpStatusCode.NotFound)
+                return@get
+            }
 
-                                            div("card-item") { b { +"App Name: " }; +data.appName }
-                                            div("card-item") { b { +"App Version: " }; +data.appVersion }
-                                            div("card-item") { b { +"UTM Data: " }; +(data.utmData?.toString() ?: "N/A") }
-                                            div("card-item") { b { +"Device Model: " }; +data.deviceModel }
-                                            div("card-item") { b { +"Language: " }; +data.language }
-                                            div("card-item") { b { +"Country: " }; +data.country }
-                                            div("card-item") { b { +"From Play Store: " }; +data.isFromPlayStore.toString() }
-                                            div("card-item") { b { +"Event: " }; +(data.event?.toString() ?: "N/A") }
-                                        }
-                                    }
-                                } else {
-                                    p { +"Нет данных для отображения." }
-                                }
-                            }
+            if (appData.isEmpty()) {
+                logger.error("App Data not found!")
+                call.respondText("App not found: App Data is Null", status = HttpStatusCode.NotFound)
+                return@get
+            }
+
+
+            call.respondHtml {
+                head {
+                    title { +"Dashboard - ${appData.size}" }
+                }
+                body {
+                    h1 { +"Name for ${appData.first().appName}" }
+
+                    appData.forEach { data ->
+                        div {
+                           h3 { +"App Name: ${data.appName}" }
+
+                            h5 { +"App Bundle: ${data.bundleId}" }
+                            h5 { +"App UTM DATA: ${data.utmData}" }
+                            h5 { +"App Install Referer: ${data.installReferrer}" }
+                            h5 { +"App Impression Click: $appImpressionClick" }
                         }
                     }
-                } else {
-                    call.respondRedirect("/login?error=unauthorized")
+
+                    a(href = "/admin") { +"Back to Home" }
                 }
-            } catch (e: Exception) {
-                call.respondRedirect("/login?error=api_unreachable")
             }
+
         }
     }
 
-}
-
-
-suspend fun fetchProtectedApi(token: String): HttpResponse {
-    val client = HttpClient()
-    return client.get("${URL_TO_SERVER}apps") {
-        header("Authorization", "Bearer $token")
-    }
 }

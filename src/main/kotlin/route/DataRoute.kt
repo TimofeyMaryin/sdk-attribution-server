@@ -8,12 +8,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import org.example.callback.ActionDataCallback
-import org.example.model.InstallData
 import org.example.db.DatabasePostgreSQL
+import org.example.model.InstallData
 import org.example.utils.FILTER
 import org.example.utils.ActionDataState
 import org.example.utils.JWTConfig
-import org.example.utils.generateToken
 
 class DataRoute(
     private val logger: Logger

@@ -25,7 +25,7 @@ suspend fun findApplicationByName(name: String?): InstallData? {
 
     try {
         println("findApplicationByName: start function")
-        val response: HttpResponse = client.get("${URL_TO_SERVER}apps") {
+        val response: HttpResponse = client.get("${URL_TO_SERVER}/apps") {
             url {
                 parameters.append("name", name!!)
             }

@@ -30,7 +30,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0") // Для работы с JSON
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0") // Для интеграции Ktor с kotlinx.serialization
-
+    
 }
 
 tasks.test {

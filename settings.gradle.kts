@@ -5,3 +5,5 @@ plugins {
 rootProject.name = "SDK_Server"
 include("src:main:client")
 findProject(":src:main:client")?.name = "client"
+
+include("data")
