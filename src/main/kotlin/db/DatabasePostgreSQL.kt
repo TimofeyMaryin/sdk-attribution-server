@@ -37,20 +37,21 @@ object DatabasePostgreSQL {
         val apiLevel = integer("apiLevel")
         val language = varchar("language", 100)
         val country = varchar("country", 100)
-        val installReferrer = varchar("installReferrer", 100).nullable()
+        val installReferrer = text("installReferrer").nullable()
         val isFirstInstall = bool("isFirstInstall")
         val googleAdId = varchar("googleAdId", 100).nullable()
         val networkType = varchar("networkType", 100)
         val isFromPlayStore = bool("isFromPlayStore")
         val timestamp = long("timestamp")
-        val utmData = varchar("utmData", 255).nullable()
-        val unityAdsData = varchar("unityAdsData", 1000).nullable()
+        val utmData = text("utmData").nullable()
+        val unityAdsData = text("unityAdsData").nullable()
         val events = text("event").nullable()
         override val primaryKey = PrimaryKey(id)
     }
 
     fun init() {
         transaction(Database.connect(db)) {
+            // SchemaUtils.drop(Install)
             SchemaUtils.create(Install)
         }
     }

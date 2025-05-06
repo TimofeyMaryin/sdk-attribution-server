@@ -11,14 +11,20 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.util.logging.Logger
+import kotlinx.html.ButtonType
 import kotlinx.html.a
 import kotlinx.html.body
+import kotlinx.html.button
 import kotlinx.html.div
 import kotlinx.html.h1
 import kotlinx.html.h3
 import kotlinx.html.h5
 import kotlinx.html.h6
 import kotlinx.html.head
+import kotlinx.html.id
+import kotlinx.html.option
+import kotlinx.html.script
+import kotlinx.html.select
 import kotlinx.html.style
 import kotlinx.html.table
 import kotlinx.html.tbody
@@ -272,6 +278,99 @@ class DashboardRoute(private val logger: Logger) {
                                 div(classes = "info-value") { +appImpressionClick.size.toString() }
                             }
 
+                            val stats = aggregateStats(appData, appImpressionClick)
+                            val allSources = stats.keys.sorted()
+                            val allCampaigns = stats.values.flatMap { it.campaigns.keys }.distinct().sorted()
+                            val allSiteIds = stats.values.flatMap { it.campaigns.values.map { c -> c.siteId } }.distinct().sorted()
+                            val allCreatives = stats.values.flatMap { it.campaigns.values.map { c -> c.creative } }.distinct().sorted()
+                            div(classes = "filter-bar") {
+                                style {
+                                    unsafe {
+                                        +"""
+                                        .filter-bar {
+                                            display: flex;
+                                            flex-wrap: wrap;
+                                            gap: 16px;
+                                            margin-bottom: 20px;
+                                            align-items: center;
+                                            background: #fff;
+                                            border-radius: 8px;
+                                            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                                            padding: 16px 20px;
+                                        }
+                                        .filter-bar select {
+                                            padding: 10px 16px;
+                                            border-radius: 6px;
+                                            border: 1px solid #d0d7de;
+                                            font-size: 15px;
+                                            background: #f8f9fa;
+                                            color: #333;
+                                            transition: border 0.2s, box-shadow 0.2s;
+                                            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                                        }
+                                        .filter-bar select:focus {
+                                            border: 1.5px solid #0066cc;
+                                            outline: none;
+                                            box-shadow: 0 0 0 2px #e0eaff;
+                                        }
+                                        .filter-bar button {
+                                            padding: 10px 20px;
+                                            border-radius: 6px;
+                                            border: none;
+                                            font-size: 15px;
+                                            background: linear-gradient(90deg, #f0f7ff 0%, #e0eaff 100%);
+                                            color: #0066cc;
+                                            font-weight: 600;
+                                            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+                                            cursor: pointer;
+                                            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+                                        }
+                                        .filter-bar button:hover {
+                                            background: #d6eaff;
+                                            color: #004b99;
+                                            box-shadow: 0 2px 8px rgba(0,102,204,0.08);
+                                        }
+                                        @media (max-width: 700px) {
+                                            .filter-bar {
+                                                flex-direction: column;
+                                                align-items: stretch;
+                                                gap: 10px;
+                                                padding: 12px 8px;
+                                            }
+                                            .filter-bar select, .filter-bar button {
+                                                width: 100%;
+                                            }
+                                        }
+                                        """
+                                    }
+                                }
+                                select {
+                                    id = "sourceFilter"
+                                    option { value = ""; +"Все площадки" }
+                                    allSources.forEach { option { value = it; +it } }
+                                }
+                                select {
+                                    id = "campaignFilter"
+                                    option { value = ""; +"Все кампании" }
+                                    allCampaigns.forEach { option { value = it; +it } }
+                                }
+                                select {
+                                    id = "siteIdFilter"
+                                    option { value = ""; +"Все Site ID" }
+                                    allSiteIds.forEach { option { value = it; +it } }
+                                }
+                                select {
+                                    id = "creativeFilter"
+                                    option { value = ""; +"Все Creative" }
+                                    allCreatives.forEach { option { value = it; +it } }
+                                }
+                                button {
+                                    id = "resetFilters"
+                                    type = ButtonType.button
+                                    +"Сбросить фильтры"
+                                }
+                            }
+
                             div(classes = "data-table") {
                                 style {
                                     unsafe {
@@ -464,6 +563,65 @@ class DashboardRoute(private val logger: Logger) {
                                     }
                                 }
                             }
+                        }
+                    }
+                    script {
+                        unsafe {
+                            +"""
+                            // JS-фильтрация таблицы и Totals
+                            function getCellText(row, idx) {
+                                return row.cells[idx]?.textContent?.trim() || '';
+                            }
+                            function filterTable() {
+                                const source = document.getElementById('sourceFilter').value;
+                                const campaign = document.getElementById('campaignFilter').value;
+                                const siteId = document.getElementById('siteIdFilter').value;
+                                const creative = document.getElementById('creativeFilter').value;
+                                const table = document.querySelector('.data-table table');
+                                const rows = table.querySelectorAll('tbody tr');
+                                let totalInstalls = 0, totalImpr = 0, totalClicks = 0;
+                                rows.forEach(row => {
+                                    if (row.classList.contains('total-row')) return;
+                                    let show = true;
+                                    if (source && row.classList.contains('campaign-row')) {
+                                        // Для кампаний ищем родительский source
+                                        const prev = row.previousElementSibling;
+                                        if (!prev || getCellText(prev, 0) !== source) show = false;
+                                    } else if (source && !row.classList.contains('campaign-row')) {
+                                        if (getCellText(row, 0) !== source) show = false;
+                                    }
+                                    if (campaign && (!row.classList.contains('campaign-row') || getCellText(row, 0) !== campaign)) show = false;
+                                    if (siteId && getCellText(row, 1) !== siteId) show = false;
+                                    if (creative && getCellText(row, 2) !== creative) show = false;
+                                    row.style.display = show ? '' : 'none';
+                                    if (show && row.classList.contains('campaign-row')) {
+                                        totalInstalls += parseInt(getCellText(row, 5)) || 0;
+                                        totalImpr += parseInt(getCellText(row, 6)) || 0;
+                                        totalClicks += parseInt(getCellText(row, 7)) || 0;
+                                    }
+                                });
+                                // Обновляем Totals
+                                const totalRow = table.querySelector('tr.total-row');
+                                if (totalRow) {
+                                    totalRow.cells[5].textContent = totalInstalls;
+                                    totalRow.cells[6].textContent = totalImpr;
+                                    totalRow.cells[7].textContent = totalClicks;
+                                    totalRow.cells[8].textContent = (totalImpr > 0 ? (totalClicks / totalImpr * 100).toFixed(2) : '0.00') + '%';
+                                    totalRow.cells[9].textContent = (totalClicks > 0 ? (totalInstalls / totalClicks * 100).toFixed(2) : '0.00') + '%';
+                                }
+                            }
+                            document.getElementById('sourceFilter').addEventListener('change', filterTable);
+                            document.getElementById('campaignFilter').addEventListener('change', filterTable);
+                            document.getElementById('siteIdFilter').addEventListener('change', filterTable);
+                            document.getElementById('creativeFilter').addEventListener('change', filterTable);
+                            document.getElementById('resetFilters').addEventListener('click', function() {
+                                document.getElementById('sourceFilter').value = '';
+                                document.getElementById('campaignFilter').value = '';
+                                document.getElementById('siteIdFilter').value = '';
+                                document.getElementById('creativeFilter').value = '';
+                                filterTable();
+                            });
+                            """
                         }
                     }
                 }
