@@ -1,0 +1,42 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Build JARs
+        run: |
+          ./gradlew :client:frontendJar :main:backendJar
+
+      - name: Upload JARs to server
+        run: |
+          scp -i ~/.ssh/id_ed25519 ./backend/build/libs/backend.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/backend.jar
+          scp -i ~/.ssh/id_ed25519 ./frontend/build/libs/frontend.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/frontend.jar
+
+      - name: Restart backend and frontend on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            pkill -f 'java.*backend.jar' || true
+            pkill -f 'java.*frontend.jar' || true
+
+            echo "Starting backend..."
+            nohup java -jar /root/backend.jar > backend.log 2>&1 &
+
+            echo "Starting frontend..."
+            nohup java -jar /root/frontend.jar > frontend.log 2>&1 &
+          EOF

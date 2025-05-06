@@ -3,7 +3,10 @@ plugins {
 
 }
 rootProject.name = "SDK_Server"
-include("src:main:client")
-findProject(":src:main:client")?.name = "client"
+//include("src:main:client")
+//findProject(":src:main:client")?.name = "client"
+
+include(":client")
+project(":client").projectDir = file("src/main/client")
 
 //include("data")

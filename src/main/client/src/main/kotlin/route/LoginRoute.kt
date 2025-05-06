@@ -20,6 +20,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.example.utils.URL_TO_SERVER
 
 @Serializable
 data class UserCredentials(
@@ -169,7 +170,7 @@ suspend fun loginRequest(
         }
     }
 
-    val response: HttpResponse = client.post("http://192.168.1.227:8080/login") {
+    val response: HttpResponse = client.post("${URL_TO_SERVER}/login") {
         contentType(ContentType.Application.Json)
         setBody(UserCredentials(username, password))
     }

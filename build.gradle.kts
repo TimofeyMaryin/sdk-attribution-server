@@ -18,6 +18,31 @@ tasks {
     }
 }
 
+tasks.register<Jar>("backendJar") {
+    group = "build"
+    description = "Assembles a fat JAR with all dependencies."
+    archiveBaseName.set("backend")
+    archiveVersion.set("") // убираем версию из имени
+    archiveClassifier.set("") // убираем classifier (иначе будет all.jar и т.д.)
+    destinationDirectory.set(layout.buildDirectory.dir("libs"))
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes["Main-Class"] = "org.example.MainKt"
+    }
+
+    from(sourceSets.main.get().output)
+
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().map {
+            if (it.isDirectory) it else zipTree(it)
+        }
+    })
+}
+
+
 group = "org.example"
 version = "1.0-SNAPSHOT"
 

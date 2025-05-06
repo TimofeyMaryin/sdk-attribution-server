@@ -12,6 +12,30 @@ repositories {
     mavenCentral()
 }
 
+tasks.register<Jar>("frontendJar") {
+    group = "build"
+    description = "Assembles a fat JAR with all dependencies for frontend."
+    archiveBaseName.set("frontend")
+    archiveVersion.set("")
+    archiveClassifier.set("")
+    destinationDirectory.set(layout.buildDirectory.dir("libs"))
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes["Main-Class"] = "org.example.MainKt" // если main() в Front-End
+    }
+
+    from(sourceSets.main.get().output)
+
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().map {
+            if (it.isDirectory) it else zipTree(it)
+        }
+    })
+}
+
 dependencies {
     testImplementation(kotlin("test"))
 
