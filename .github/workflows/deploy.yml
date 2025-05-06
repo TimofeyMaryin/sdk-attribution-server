@@ -25,8 +25,8 @@ jobs:
 
       - name: Upload JARs to server
         run: |
-          scp -i ~/.ssh/id_ed25519 ./backend/build/libs/backend.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/backend.jar
-          scp -i ~/.ssh/id_ed25519 ./frontend/build/libs/frontend.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/frontend.jar
+          scp -i ~/.ssh/id_ed25519 ./build/libs/backend.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/backend.jar
+          scp -i ~/.ssh/id_ed25519 ./src/main/client/build/libs/frontend.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/frontend.jar
 
       - name: Restart backend and frontend on server
         run: |
